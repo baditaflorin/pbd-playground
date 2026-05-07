@@ -6,6 +6,17 @@ import { defineConfig } from "vite";
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   version: string;
 };
+const buildInputPaths = [
+  "src",
+  "public",
+  "scripts",
+  "wasm",
+  "index.html",
+  "package.json",
+  "package-lock.json",
+  "tsconfig.json",
+  "vite.config.ts",
+].join(" ");
 
 function gitValue(command: string, fallback: string): string {
   try {
@@ -34,7 +45,9 @@ export default defineConfig({
   },
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
-    __GIT_COMMIT__: JSON.stringify(gitValue("git rev-parse --short HEAD", "unknown")),
+    __GIT_COMMIT__: JSON.stringify(
+      gitValue(`git log -1 --format=%h -- ${buildInputPaths}`, "unknown"),
+    ),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
   },
   resolve: {
