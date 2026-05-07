@@ -1,0 +1,18 @@
+{
+  "name": "pbd-playground",
+  "short_name": "PBD",
+  "description": "A tactile WebGPU sandbox for real-time soft-body physics.",
+  "start_url": "/pbd-playground/",
+  "scope": "/pbd-playground/",
+  "display": "standalone",
+  "background_color": "#111417",
+  "theme_color": "#111417",
+  "icons": [
+    {
+      "src": "/pbd-playground/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
