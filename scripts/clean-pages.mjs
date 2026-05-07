@@ -10,7 +10,6 @@ const generatedEntries = [
   "favicon.svg",
   "sw.js",
   "wasm",
-  "screenshots",
 ];
 
 for (const entry of generatedEntries) {

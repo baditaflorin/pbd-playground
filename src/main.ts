@@ -20,7 +20,6 @@ import {
   loadSettings,
   playgroundSettingsSchema,
   saveSettings,
-  type PlaygroundSettings,
 } from "./features/playground/settings";
 import type { Playground, PlaygroundStats } from "./features/playground/playground";
 

@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+playwright-report/
+test-results/
+tmp/
+docs/assets/
+docs/**/*.map
+docs/index.html
+docs/404.html
+docs/sw.js
+docs/manifest.webmanifest
+docs/favicon.svg
+public/wasm/
+docs/wasm/

@@ -31,8 +31,7 @@ export async function createThreeScene(
   scene.fog = new THREE.Fog(0x111417, 3.2, 6.2);
 
   const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 12);
-  camera.position.set(0, 0.35, state.cameraDistance);
-  camera.lookAt(0, 0.25, 0);
+  frameCamera(camera, state);
 
   const ambient = new THREE.HemisphereLight(0xb8e4ff, 0x2b2017, 1.65);
   const key = new THREE.DirectionalLight(0xffffff, 2.2);
@@ -60,8 +59,7 @@ export async function createThreeScene(
     bodies.dispose();
     bodies = createBodies(nextState);
     scene.add(bodies.root);
-    camera.position.set(0, 0.35, nextState.cameraDistance);
-    camera.lookAt(0, 0.25, 0);
+    frameCamera(camera, nextState);
   }
 
   function resize(width: number, height: number): void {
@@ -101,10 +99,28 @@ export async function createThreeScene(
   };
 }
 
+function frameCamera(camera: THREE.PerspectiveCamera, state: SimulationState): void {
+  const center = new THREE.Vector3();
+  const count = state.positions.length / 3;
+
+  for (let i = 0; i < count; i += 1) {
+    const offset = i * 3;
+    center.x += state.positions[offset]!;
+    center.y += state.positions[offset + 1]!;
+    center.z += state.positions[offset + 2]!;
+  }
+
+  center.multiplyScalar(1 / count);
+  camera.position.set(0, center.y + 0.12, state.cameraDistance);
+  camera.lookAt(center.x, center.y, center.z);
+}
+
 async function createRenderer(
   canvas: HTMLCanvasElement,
 ): Promise<{ renderer: AnyRenderer; name: "WebGPU" | "WebGL" }> {
-  if ("gpu" in navigator) {
+  const forceWebGl = new URLSearchParams(window.location.search).get("renderer") === "webgl";
+
+  if (!forceWebGl && "gpu" in navigator) {
     try {
       const webgpu = await import("three/webgpu");
       const renderer = new webgpu.WebGPURenderer({
@@ -241,7 +257,10 @@ function updateBodies(bodies: Bodies, state: SimulationState): void {
     bodies.lines.geometry.dispose();
     bodies.linePositions = new Float32Array(visibleConstraints.length * 6);
     bodies.lines.geometry = new THREE.BufferGeometry();
-    bodies.lines.geometry.setAttribute("position", new THREE.BufferAttribute(bodies.linePositions, 3));
+    bodies.lines.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(bodies.linePositions, 3),
+    );
   }
 
   for (let i = 0; i < visibleConstraints.length; i += 1) {

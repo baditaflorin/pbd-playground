@@ -1,6 +1,12 @@
 const CACHE_NAME = "pbd-playground-v0.1.0";
 const BASE = "/pbd-playground/";
-const CORE_ASSETS = [BASE, `${BASE}index.html`, `${BASE}manifest.webmanifest`, `${BASE}favicon.svg`, `${BASE}wasm/pbd_kernel.wasm`];
+const CORE_ASSETS = [
+  BASE,
+  `${BASE}index.html`,
+  `${BASE}manifest.webmanifest`,
+  `${BASE}favicon.svg`,
+  `${BASE}wasm/pbd_kernel.wasm`,
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -15,7 +21,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+      )
       .then(() => self.clients.claim()),
   );
 });

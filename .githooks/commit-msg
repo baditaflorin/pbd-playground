@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MSG_FILE="${1:?commit message file required}"
+FIRST_LINE="$(sed -n '1p' "$MSG_FILE")"
+
+if ! printf '%s' "$FIRST_LINE" | grep -Eq '^(feat|fix|docs|chore|refactor|test|ops|data|style|perf|build|ci|revert)(\([a-z0-9._-]+\))?!?: .{1,120}$'; then
+  echo "Commit message must use Conventional Commits, e.g. feat: add cloth tearing" >&2
+  exit 1
+fi

@@ -108,10 +108,19 @@ export function createClothPreset(): SimulationState {
       if (y + 1 < height) addConstraint(builder, current, gridIndex(x, y + 1, width), 0.9);
       if (x + 1 < width && y + 1 < height) {
         addConstraint(builder, current, gridIndex(x + 1, y + 1, width), 0.68, true, false);
-        addConstraint(builder, gridIndex(x + 1, y, width), gridIndex(x, y + 1, width), 0.68, true, false);
+        addConstraint(
+          builder,
+          gridIndex(x + 1, y, width),
+          gridIndex(x, y + 1, width),
+          0.68,
+          true,
+          false,
+        );
       }
-      if (x + 2 < width) addConstraint(builder, current, gridIndex(x + 2, y, width), 0.22, true, false);
-      if (y + 2 < height) addConstraint(builder, current, gridIndex(x, y + 2, width), 0.22, true, false);
+      if (x + 2 < width)
+        addConstraint(builder, current, gridIndex(x + 2, y, width), 0.22, true, false);
+      if (y + 2 < height)
+        addConstraint(builder, current, gridIndex(x, y + 2, width), 0.22, true, false);
     }
   }
 
@@ -184,7 +193,8 @@ export function createHairPreset(): SimulationState {
       );
 
       if (segment > 0) addConstraint(builder, root + segment - 1, root + segment, 0.94, true);
-      if (segment > 1) addConstraint(builder, root + segment - 2, root + segment, 0.18, false, false);
+      if (segment > 1)
+        addConstraint(builder, root + segment - 2, root + segment, 0.18, false, false);
     }
   }
 
@@ -209,14 +219,7 @@ export function createJellyPreset(): SimulationState {
   for (let z = 0; z < size; z += 1) {
     for (let y = 0; y < size; y += 1) {
       for (let x = 0; x < size; x += 1) {
-        addParticle(
-          builder,
-          start + x * spacing,
-          0.7 + y * spacing,
-          start + z * spacing,
-          1,
-          0.035,
-        );
+        addParticle(builder, start + x * spacing, 0.7 + y * spacing, start + z * spacing, 1, 0.035);
       }
     }
   }

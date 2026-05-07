@@ -16,13 +16,14 @@
     "build:wasm": "bash scripts/build-wasm.sh",
     "clean:pages": "node scripts/clean-pages.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint src tests vite.config.ts vitest.config.ts playwright.config.ts",
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "bash scripts/smoke.sh",
-    "pages-preview": "npm run build && sirv docs --single --host 127.0.0.1 --port 4174",
+    "preview:pages": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "pages-preview": "npm run build && npm run preview:pages",
     "audit": "npm audit --audit-level=high"
   },
   "dependencies": {

@@ -1,8 +1,4 @@
-export function distance3(
-  positions: Float32Array,
-  a: number,
-  b: number,
-): number {
+export function distance3(positions: Float32Array, a: number, b: number): number {
   const ai = a * 3;
   const bi = b * 3;
   const dx = positions[ai]! - positions[bi]!;
@@ -12,11 +8,7 @@ export function distance3(
   return Math.hypot(dx, dy, dz);
 }
 
-export function midpoint3(
-  positions: Float32Array,
-  a: number,
-  b: number,
-): [number, number, number] {
+export function midpoint3(positions: Float32Array, a: number, b: number): [number, number, number] {
   const ai = a * 3;
   const bi = b * 3;
 

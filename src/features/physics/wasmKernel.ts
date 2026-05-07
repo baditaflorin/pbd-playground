@@ -48,7 +48,8 @@ function projectWithTypeScript(
 
     if (length <= 0.000001) continue;
 
-    const correction = ((length - constraint.rest) / length) * constraint.stiffness * stiffnessScale;
+    const correction =
+      ((length - constraint.rest) / length) * constraint.stiffness * stiffnessScale;
     dx *= correction;
     dy *= correction;
     dz *= correction;
@@ -86,7 +87,11 @@ class WasmDistanceProjector implements DistanceProjector {
   constructor(private readonly exports: PbdKernelExports) {
     const heapBase = exports.__heap_base;
     this.heapBase =
-      typeof heapBase === "number" ? heapBase : heapBase instanceof WebAssembly.Global ? Number(heapBase.value) : 0;
+      typeof heapBase === "number"
+        ? heapBase
+        : heapBase instanceof WebAssembly.Global
+          ? Number(heapBase.value)
+          : 0;
   }
 
   project(

@@ -28,7 +28,10 @@ export class CollisionAudio {
     const now = this.context.currentTime;
     if (events.length === 0 || now - this.lastHitAt < 0.035) return;
 
-    const strongest = events.reduce((best, event) => (event.impulse > best.impulse ? event : best), events[0]!);
+    const strongest = events.reduce(
+      (best, event) => (event.impulse > best.impulse ? event : best),
+      events[0]!,
+    );
     const impulse = Math.min(1, Math.max(0.04, strongest.impulse));
     const pan = Math.max(-0.85, Math.min(0.85, strongest.point[0] * 0.9));
     const pitch = 130 + impulse * 520 + Math.abs(strongest.point[2]) * 80;

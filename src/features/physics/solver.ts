@@ -158,7 +158,8 @@ export class PbdSolver {
         const penetration = floorY - (positions[offset + 1]! - radius);
         positions[offset + 1] = floorY + radius;
         previous[offset] = previous[offset]! + (positions[offset]! - previous[offset]!) * 0.18;
-        previous[offset + 2] = previous[offset + 2]! + (positions[offset + 2]! - previous[offset + 2]!) * 0.18;
+        previous[offset + 2] =
+          previous[offset + 2]! + (positions[offset + 2]! - previous[offset + 2]!) * 0.18;
 
         if (emitEvents && penetration > 0.012) {
           this.collisions.push({
@@ -195,7 +196,9 @@ export class PbdSolver {
     this.state.constraints = this.state.constraints.filter((constraint) => {
       if (!constraint.tearable) return true;
 
-      return distance3(this.state.positions, constraint.a, constraint.b) / constraint.rest < maxRatio;
+      return (
+        distance3(this.state.positions, constraint.a, constraint.b) / constraint.rest < maxRatio
+      );
     });
 
     if (before !== this.state.constraints.length) {
