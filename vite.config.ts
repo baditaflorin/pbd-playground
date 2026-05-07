@@ -48,7 +48,9 @@ export default defineConfig({
     __GIT_COMMIT__: JSON.stringify(
       gitValue(`git log -1 --format=%h -- ${buildInputPaths}`, "unknown"),
     ),
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+    __BUILD_DATE__: JSON.stringify(
+      gitValue(`git log -1 --format=%cI -- ${buildInputPaths}`, new Date(0).toISOString()),
+    ),
   },
   resolve: {
     alias: {
