@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import type { SimulationState } from "../physics/types";
-import { collisionFloorY, collisionObstacle } from "../physics/solver";
+import type { Obstacle, SimulationState } from "../physics/types";
+import { collisionFloorY } from "../physics/solver";
 
 type AnyRenderer = THREE.WebGLRenderer & {
   init?: () => Promise<void>;
@@ -41,8 +41,9 @@ export async function createThreeScene(
   scene.add(ambient, key, rim);
 
   const floor = createFloor();
-  const obstacle = createObstacle();
-  scene.add(floor, obstacle);
+  scene.add(floor);
+  let obstacles = createObstacleGroup(state.obstacles ?? []);
+  scene.add(obstacles);
 
   const renderer = rendererResult.renderer;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -59,6 +60,10 @@ export async function createThreeScene(
     bodies.dispose();
     bodies = createBodies(nextState);
     scene.add(bodies.root);
+    scene.remove(obstacles);
+    disposeGroup(obstacles);
+    obstacles = createObstacleGroup(nextState.obstacles ?? []);
+    scene.add(obstacles);
     frameCamera(camera, nextState);
   }
 
@@ -314,20 +319,89 @@ function createFloor(): THREE.Group {
   return group;
 }
 
-function createObstacle(): THREE.Mesh {
+function createObstacleGroup(obstacles: Obstacle[]): THREE.Group {
+  const group = new THREE.Group();
+  for (const ob of obstacles) {
+    group.add(meshForObstacle(ob));
+  }
+  return group;
+}
+
+function disposeGroup(group: THREE.Group): void {
+  group.traverse((object) => {
+    if ((object as THREE.Mesh).isMesh) {
+      const mesh = object as THREE.Mesh;
+      mesh.geometry.dispose();
+      const material = mesh.material as THREE.Material | THREE.Material[];
+      if (Array.isArray(material)) {
+        for (const item of material) item.dispose();
+      } else {
+        material.dispose();
+      }
+    }
+  });
+}
+
+function meshForObstacle(ob: Obstacle): THREE.Mesh {
+  if (ob.kind === "sphere") {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(ob.radius, 32, 18),
+      new THREE.MeshPhysicalMaterial({
+        color: ob.color ?? 0xf36f72,
+        roughness: 0.34,
+        metalness: 0.08,
+        clearcoat: 0.4,
+        transparent: true,
+        opacity: 0.88,
+      }),
+    );
+    mesh.position.set(ob.center[0], ob.center[1], ob.center[2]);
+    return mesh;
+  }
+
+  if (ob.kind === "box") {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(ob.halfExtents[0] * 2, ob.halfExtents[1] * 2, ob.halfExtents[2] * 2),
+      new THREE.MeshPhysicalMaterial({
+        color: ob.color ?? 0x70e0ad,
+        roughness: 0.5,
+        metalness: 0.06,
+        transparent: true,
+        opacity: 0.86,
+      }),
+    );
+    mesh.position.set(ob.center[0], ob.center[1], ob.center[2]);
+    return mesh;
+  }
+
+  const extent = ob.extent ?? [1.4, 0.02, 1.0];
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(collisionObstacle.radius, 32, 18),
+    new THREE.BoxGeometry(extent[0] * 2, extent[1] * 2, extent[2] * 2),
     new THREE.MeshPhysicalMaterial({
-      color: 0xf36f72,
-      roughness: 0.34,
-      metalness: 0.08,
-      clearcoat: 0.4,
+      color: ob.color ?? 0x6fd3ff,
+      roughness: 0.6,
+      metalness: 0.05,
       transparent: true,
-      opacity: 0.88,
+      opacity: 0.78,
     }),
   );
-  mesh.position.set(collisionObstacle.x, collisionObstacle.y, collisionObstacle.z);
-
+  // Place the slab so its top face sits on the plane (n · p = offset).
+  // We translate `offset + extent.y` along the plane normal so the surface
+  // the rope contacts is the upward face.
+  const nx = ob.normal[0];
+  const ny = ob.normal[1];
+  const nz = ob.normal[2];
+  const halfThickness = extent[1];
+  mesh.position.set(
+    nx * (ob.offset + halfThickness),
+    ny * (ob.offset + halfThickness),
+    nz * (ob.offset + halfThickness),
+  );
+  // Orient the slab so its local +Y aligns with the plane normal.
+  const up = new THREE.Vector3(0, 1, 0);
+  const normal = new THREE.Vector3(nx, ny, nz).normalize();
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(up, normal);
+  mesh.quaternion.copy(quaternion);
   return mesh;
 }
 

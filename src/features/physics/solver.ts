@@ -1,15 +1,16 @@
 import { centerOfMass, distance3, midpoint3, squaredDistanceToPoint } from "./math";
 import type { DistanceProjector } from "./wasmKernel";
-import type { CollisionEvent, SimulationState, StepOptions } from "./types";
+import type { CollisionEvent, Obstacle, SimulationState, StepOptions } from "./types";
 
 const gravity = -9.3;
 const floorY = -0.68;
 const damping = 0.988;
-const obstacle = {
-  x: 0.44,
-  y: -0.32,
-  z: 0,
+const defaultObstacle: Obstacle = {
+  kind: "sphere",
+  center: [0.44, -0.32, 0],
   radius: 0.23,
+  color: 0xf36f72,
+  label: "Hero sphere",
 };
 
 export class PbdSolver {
@@ -147,6 +148,7 @@ export class PbdSolver {
   private projectCollisions(emitEvents: boolean): void {
     const positions = this.state.positions;
     const previous = this.state.previous;
+    const obstacles = this.state.obstacles ?? [];
 
     for (let particle = 0; particle < this.state.inverseMasses.length; particle += 1) {
       if (this.state.inverseMasses[particle] === 0) continue;
@@ -169,18 +171,29 @@ export class PbdSolver {
         }
       }
 
-      const dx = positions[offset]! - obstacle.x;
-      const dy = positions[offset + 1]! - obstacle.y;
-      const dz = positions[offset + 2]! - obstacle.z;
-      const minDistance = obstacle.radius + radius;
-      const distance = Math.hypot(dx, dy, dz);
+      for (const ob of obstacles) {
+        this.resolveObstacle(ob, offset, radius, emitEvents);
+      }
+    }
+  }
 
+  private resolveObstacle(ob: Obstacle, offset: number, radius: number, emitEvents: boolean): void {
+    const positions = this.state.positions;
+
+    if (ob.kind === "sphere") {
+      const dx = positions[offset]! - ob.center[0];
+      const dy = positions[offset + 1]! - ob.center[1];
+      const dz = positions[offset + 2]! - ob.center[2];
+      const minDistance = ob.radius + radius;
+      const distance = Math.hypot(dx, dy, dz);
       if (distance > 0.0001 && distance < minDistance) {
         const push = minDistance - distance;
-        positions[offset] = positions[offset]! + (dx / distance) * push;
-        positions[offset + 1] = positions[offset + 1]! + (dy / distance) * push;
-        positions[offset + 2] = positions[offset + 2]! + (dz / distance) * push;
-
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const nz = dz / distance;
+        positions[offset] = positions[offset]! + nx * push;
+        positions[offset + 1] = positions[offset + 1]! + ny * push;
+        positions[offset + 2] = positions[offset + 2]! + nz * push;
         if (emitEvents && push > 0.009) {
           this.collisions.push({
             point: [positions[offset]!, positions[offset + 1]!, positions[offset + 2]!],
@@ -188,6 +201,75 @@ export class PbdSolver {
           });
         }
       }
+      return;
+    }
+
+    if (ob.kind === "box") {
+      // Resolve against the inflated AABB: nearest-axis push-out keeps the
+      // particle's centre at least `radius` from each box face.
+      const lx = ob.center[0] - ob.halfExtents[0] - radius;
+      const hx = ob.center[0] + ob.halfExtents[0] + radius;
+      const ly = ob.center[1] - ob.halfExtents[1] - radius;
+      const hy = ob.center[1] + ob.halfExtents[1] + radius;
+      const lz = ob.center[2] - ob.halfExtents[2] - radius;
+      const hz = ob.center[2] + ob.halfExtents[2] + radius;
+      const px = positions[offset]!;
+      const py = positions[offset + 1]!;
+      const pz = positions[offset + 2]!;
+      if (px < lx || px > hx || py < ly || py > hy || pz < lz || pz > hz) return;
+
+      const overlapXLow = px - lx;
+      const overlapXHigh = hx - px;
+      const overlapYLow = py - ly;
+      const overlapYHigh = hy - py;
+      const overlapZLow = pz - lz;
+      const overlapZHigh = hz - pz;
+      let minOverlap = overlapXLow;
+      let axis = 0;
+      let sign = -1;
+      const consider = (overlap: number, nextAxis: number, nextSign: number) => {
+        if (overlap < minOverlap) {
+          minOverlap = overlap;
+          axis = nextAxis;
+          sign = nextSign;
+        }
+      };
+      consider(overlapXHigh, 0, 1);
+      consider(overlapYLow, 1, -1);
+      consider(overlapYHigh, 1, 1);
+      consider(overlapZLow, 2, -1);
+      consider(overlapZHigh, 2, 1);
+      positions[offset + axis] = positions[offset + axis]! + minOverlap * sign;
+      if (emitEvents && minOverlap > 0.009) {
+        this.collisions.push({
+          point: [positions[offset]!, positions[offset + 1]!, positions[offset + 2]!],
+          impulse: minOverlap * 22,
+        });
+      }
+      return;
+    }
+
+    // Plane: keep particle centre on the positive side of the half-space
+    // n · p >= offset + radius. Inflate by radius so the particle's surface
+    // touches the plane on contact.
+    const nx = ob.normal[0];
+    const ny = ob.normal[1];
+    const nz = ob.normal[2];
+    const distance =
+      nx * positions[offset]! +
+      ny * positions[offset + 1]! +
+      nz * positions[offset + 2]! -
+      ob.offset;
+    if (distance >= radius) return;
+    const push = radius - distance;
+    positions[offset] = positions[offset]! + nx * push;
+    positions[offset + 1] = positions[offset + 1]! + ny * push;
+    positions[offset + 2] = positions[offset + 2]! + nz * push;
+    if (emitEvents && push > 0.009) {
+      this.collisions.push({
+        point: [positions[offset]!, positions[offset + 1]!, positions[offset + 2]!],
+        impulse: push * 24,
+      });
     }
   }
 
@@ -207,5 +289,5 @@ export class PbdSolver {
   }
 }
 
-export const collisionObstacle = obstacle;
 export const collisionFloorY = floorY;
+export const defaultSceneObstacle = defaultObstacle;

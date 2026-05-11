@@ -1,5 +1,106 @@
 import type { PresetKind } from "../playground/settings";
-import type { DistanceConstraint, SimulationState } from "./types";
+import type { DistanceConstraint, Obstacle, SimulationState } from "./types";
+
+/**
+ * Scene obstacles for each preset. Built once per file load so the per-scene
+ * obstacle layout is data, not code lurking in the solver. The PBD solver
+ * iterates over the resulting array and resolves sphere/box/plane collisions.
+ */
+function clothObstacles(): Obstacle[] {
+  return [
+    {
+      kind: "sphere",
+      center: [0.44, -0.32, 0],
+      radius: 0.23,
+      color: 0xf36f72,
+      label: "Hero sphere",
+    },
+    {
+      kind: "box",
+      center: [-0.55, -0.42, 0.05],
+      halfExtents: [0.13, 0.13, 0.13],
+      color: 0xf2c34f,
+      label: "Sit pillar",
+    },
+  ];
+}
+
+function jellyObstacles(): Obstacle[] {
+  return [
+    {
+      kind: "sphere",
+      center: [0.45, -0.4, -0.1],
+      radius: 0.2,
+      color: 0xf36f72,
+      label: "Bumper",
+    },
+    {
+      kind: "sphere",
+      center: [-0.45, -0.42, 0.18],
+      radius: 0.16,
+      color: 0x6fd3ff,
+      label: "Sidekick",
+    },
+    {
+      kind: "box",
+      center: [0, -0.55, 0],
+      halfExtents: [0.7, 0.04, 0.4],
+      color: 0x70e0ad,
+      label: "Pedestal",
+    },
+  ];
+}
+
+function ropeObstacles(): Obstacle[] {
+  // A diagonal ramp the rope drapes over. The plane normal points up-and-
+  // back so the rope rolls down toward the viewer.
+  const tilt = Math.PI / 7;
+  return [
+    {
+      kind: "plane",
+      normal: [0, Math.cos(tilt), Math.sin(tilt)],
+      offset: -0.3 * Math.cos(tilt),
+      color: 0x6fd3ff,
+      label: "Ramp",
+      extent: [1.2, 0.02, 0.7],
+    },
+    {
+      kind: "sphere",
+      center: [0.6, -0.18, 0.1],
+      radius: 0.14,
+      color: 0xf2c34f,
+      label: "Pulley",
+    },
+  ];
+}
+
+function hairObstacles(): Obstacle[] {
+  // Shoulders + a box the hair brushes against — feels like a head sitting
+  // on a table.
+  return [
+    {
+      kind: "sphere",
+      center: [-0.55, -0.05, 0],
+      radius: 0.18,
+      color: 0xf36f72,
+      label: "Left shoulder",
+    },
+    {
+      kind: "sphere",
+      center: [0.55, -0.05, 0],
+      radius: 0.18,
+      color: 0xf36f72,
+      label: "Right shoulder",
+    },
+    {
+      kind: "box",
+      center: [0, -0.42, 0],
+      halfExtents: [0.85, 0.04, 0.3],
+      color: 0x70e0ad,
+      label: "Table",
+    },
+  ];
+}
 
 interface Builder {
   positions: number[];
@@ -65,8 +166,11 @@ function addConstraint(
 function toState(
   kind: PresetKind,
   builder: Builder,
-  details: Pick<SimulationState, "tint" | "accent" | "particleRadius" | "cameraDistance">,
+  details: Pick<SimulationState, "tint" | "accent" | "particleRadius" | "cameraDistance"> & {
+    obstacles?: Obstacle[];
+  },
 ): SimulationState {
+  const { obstacles, ...visualDetails } = details;
   return {
     kind,
     positions: new Float32Array(builder.positions),
@@ -77,7 +181,8 @@ function toState(
     surfaceIndices:
       builder.surfaceIndices.length > 0 ? new Uint32Array(builder.surfaceIndices) : null,
     constraintVersion: 0,
-    ...details,
+    obstacles: obstacles ?? [],
+    ...visualDetails,
   };
 }
 
@@ -139,6 +244,7 @@ export function createClothPreset(): SimulationState {
     accent: "#ffe082",
     particleRadius: 0.025,
     cameraDistance: 2.45,
+    obstacles: clothObstacles(),
   });
 }
 
@@ -164,6 +270,7 @@ export function createRopePreset(): SimulationState {
     accent: "#70e0ad",
     particleRadius: 0.045,
     cameraDistance: 2.2,
+    obstacles: ropeObstacles(),
   });
 }
 
@@ -203,6 +310,7 @@ export function createHairPreset(): SimulationState {
     accent: "#f36f72",
     particleRadius: 0.025,
     cameraDistance: 2.0,
+    obstacles: hairObstacles(),
   });
 }
 
@@ -291,6 +399,7 @@ export function createJellyPreset(): SimulationState {
     accent: "#66c7ff",
     particleRadius: 0.028,
     cameraDistance: 2.25,
+    obstacles: jellyObstacles(),
   });
 }
 
